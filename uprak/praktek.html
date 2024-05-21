@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice Form</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <style>
+    .container {
+      max-width: 1500px;
+      margin: auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-family: Arial, sans-serif;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto;
+      gap: 35px;
+    }
+    .header {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .form-group label {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .form-group input, .form-group select {
+      flex: 2;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    .form-group.date {
+      grid-column: 1 / -1;
+    }
+    .items-table {
+      grid-column: 1 / -1;
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    .items-table th, .items-table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    .items-table th {
+      background-color: #f9f9f9;
+    }
+    .total {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    .total div {
+      margin-left: 20px;
+    }
+    .total input {
+      width: 100px;
+      padding: 5px;
+    }
+    .submit-button {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    .submit-button button {
+      background-color: green;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container">
+    <div class="header">
+      <div>GROSIR KITA</div>
+      <img src="toko2.jpg" alt="Logo Toko" style="max-width: 100px;">
+      <div>Total Pembayaran: <strong>Rp. {{ totalPembayaran.toFixed(2) }}</strong></div>
+    </div>
+
+    <div class="form-group">
+      <label>No. Nota:</label>
+      <input type="text" v-model="nota">
+    </div>
+
+    <div class="form-group">
+      <label>Pelanggan:</label>
+      <input type="text" v-model="pelanggan">
+    </div>
+
+    <div class="form-group date">
+      <label>Tanggal:</label>
+      <input type="date" v-model="tanggal">
+    </div>
+
+    <div class="form-group">
+      <label>Kode Barang:</label>
+      <select v-model="selectedItem">
+        <option v-for="item in items" :value="item">{{ item.nama }}</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Nama Barang:</label>
+      <input type="text" v-model="selectedItem.nama" disabled>
+    </div>
+
+    <div class="form-group">
+      <label>Quantity:</label>
+      <input type="number" v-model.number="quantity">
+    </div>
+
+    <div class="form-group">
+      <button @click="addItem">Add</button>
+    </div>
+
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>ID Barang</th>
+          <th>Nama Barang</th>
+          <th>Harga Satuan</th>
+          <th>Qty</th>
+          <th>Jumlah</th>
+          <th>Opsi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(item, index) in invoiceItems" :key="index">
+          <td>{{ item.id }}</td>
+          <td>{{ item.nama }}</td>
+          <td>Rp. {{ item.harga.toFixed(2) }}</td>
+          <td>{{ item.qty }}</td>
+          <td>Rp. {{ (item.harga * item.qty).toFixed(2) }}</td>
+          <td><button @click="removeItem(index)">Hapus</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="total">
+      <div>
+        <label>Sub Total: Rp.</label>
+        <span>{{ subTotal.toFixed(2) }}</span>
+      </div>
+      <div>
+        <label>Diskon:</label>
+        <input type="number" v-model.number="diskon"> %
+        <span>= Rp. {{ diskonAmount.toFixed(2) }}</span>
+      </div>
+      <div>
+        <label>Total Harga: Rp.</label>
+        <span>{{ totalHarga.toFixed(2) }}</span>
+      </div>
+      <div>
+        <label>Bayar: Rp.</label>
+        <input type="number" v-model.number="bayar">
+      </div>
+      <div>
+        <label>Kembalian: Rp.</label>
+        <span>{{ kembalian.toFixed(2) }}</span>
+      </div>
+    </div>
+
+    <div class="submit-button">
+      <button @click="completeTransaction">Selesai</button>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        nota: '12345',
+        pelanggan: 'Saaaaaa',
+        tanggal: '',
+        items: [
+          { id: '001', nama: 'Barang A', harga: 100000 },
+          { id: '002', nama: 'Barang B', harga: 200000 }
+        ],
+        selectedItem: { id: '', nama: '', harga: 0 },
+        quantity: 1,
+        invoiceItems: [],
+        diskon: 0,
+        bayar: 0
+      },
+      computed: {
+        subTotal() {
+          return this.invoiceItems.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+        },
+        diskonAmount() {
+          return this.subTotal * (this.diskon / 100);
+        },
+        totalHarga() {
+          return this.subTotal - this.diskonAmount;
+        },
+        totalPembayaran() {
+          return this.totalHarga;
+        },
+        kembalian() {
+          return this.bayar - this.totalHarga;
+        }
+      },
+      methods: {
+        addItem() {
+          if (this.selectedItem && this.quantity > 0) {
+            this.invoiceItems.push({ ...this.selectedItem, qty: this.quantity });
+            this.selectedItem = { id: '', nama: '', harga: 0 };
+            this.quantity = 1;
+          }
+        },
+        removeItem(index) {
+          this.invoiceItems.splice(index, 1);
+        },
+        completeTransaction() {
+          alert('Transaksi selesai!');
+          // You can add more functionality here to handle the completion of the transaction
+        }
+      }
+    });
+  </script>
+</body>
+</html>
