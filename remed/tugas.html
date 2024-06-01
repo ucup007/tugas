@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form Belanja</title>
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+    }
+    .order-form {
+        width: 800px;
+        margin: auto;
+        font-family: Arial, sans-serif;
+        border: 1px solid #ccc;
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .order-info, .product-selection, .totals, .payment, .total-payment {
+        margin: 10px 0;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+    .logo {
+        background-color: #ddd;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    button {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    input[type="number"], input[type="date"], input[type="text"] {
+        width: calc(100% - 10px);
+        padding: 5px;
+        margin: 5px 0;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    .order-info div, .product-selection div, .totals div, .payment div, .total-payment {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .order-info input, .product-selection input, .payment input {
+        width: 70%;
+    }
+</style>
+</head>
+<body>
+
+<div id="app" class="order-form">
+    <div class="header">
+        <h2>GROSIR KITA</h2>
+        <button class="logo">Logo</button>
+    </div>
+    <div class="order-info">
+        <div>
+            <span>No. Pesanan:</span>
+            <span>{{ orderNumber }}</span>
+        </div>
+        <div>
+            <span>Pelanggan:</span>
+            <input v-model="customerName" type="text" />
+        </div>
+        <div>
+            <span>Tanggal:</span>
+            <input v-model="orderDate" type="date" />
+        </div>
+    </div>
+    <div class="product-selection">
+        <div>
+            <span>Nama Barang:</span>
+            <select v-model="selectedProductId" @change="updateProductDetails">
+                <option v-for="product in products" :value="product.id">{{ product.name }}</option>
+            </select>
+        </div>
+        <div>
+            <span>Harga:</span>
+            <span>Rp. {{ selectedProductPrice }}</span>
+        </div>
+        <div>
+            <span>Stok:</span>
+            <span>{{ selectedProductStock }}</span>
+        </div>
+        <div>
+            <span>Qty:</span>
+            <input v-model.number="quantity" type="number" :min="1" :max="selectedProductStock" />
+        </div>
+        <button @click="addProduct">Tambah</button>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>ID Barang</th>
+                <th>Nama Barang</th>
+                <th>Harga Satuan</th>
+                <th>Qty</th>
+                <th>Jumlah</th>
+                <th>Opsi</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="item in orderItems" :key="item.id">
+                <td>{{ item.id }}</td>
+                <td>{{ item.name }}</td>
+                <td>Rp. {{ item.price }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>Rp. {{ item.total }}</td>
+                <td><button @click="removeProduct(item.id)">Hapus</button></td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="totals">
+        <div>
+            <span>Sub Total:</span>
+            <span>Rp. {{ subTotal }}</span>
+        </div>
+        <div>
+            <span>Diskon:</span>
+            <span>{{ discountPercentage }} % = Rp. {{ discountAmount }}</span>
+        </div>
+        <div>
+            <span>Total Harga:</span>
+            <span>Rp. {{ totalAmount }}</span>
+        </div>
+    </div>
+    <div class="payment">
+        <div>
+            <span>Bayar:</span>
+            <input v-model.number="paymentAmount" type="number" />
+        </div>
+        <div>
+            <span>Kembalian:</span>
+            <span>Rp. {{ changeAmount }}</span>
+        </div>
+        <button @click="completeOrder">Selesai</button>
+    </div>
+    <div class="total-payment">
+        <span>Total Pembayaran:</span>
+        <span>Rp. {{ totalPayment }}</span>
+    </div>
+</div>
+
+<script>
+new Vue({
+    el: '#app',
+    data: {
+        orderNumber: 7777,
+        customerName: 'yusuf',
+        orderDate: '',
+        selectedProductId: 1,
+        selectedProductPrice: 10000,
+        selectedProductStock: 20,
+        quantity: 1,
+        paymentAmount: 0,
+        orderItems: [],
+        products: [
+            { id: 1, name: 'Barang A', price: 10000, stock: 20 },
+            // Add more products as needed
+        ]
+    },
+    computed: {
+        subTotal() {
+            return this.orderItems.reduce((sum, item) => sum + item.total, 0);
+        },
+        totalItems() {
+            return this.orderItems.reduce((sum, item) => sum + item.quantity, 0);
+        },
+        discountPercentage() {
+            if (this.totalItems >= 30) return 30;
+            if (this.totalItems >= 20) return 20;
+            if (this.totalItems >= 15) return 15;
+            if (this.totalItems >= 10) return 10;
+            if (this.totalItems >= 5) return 5;
+            return 0;
+        },
+        discountAmount() {
+            return (this.subTotal * this.discountPercentage) / 100;
+        },
+        totalAmount() {
+            return this.subTotal - this.discountAmount;
+        },
+        totalPayment() {
+            return this.totalAmount;
+        },
+        changeAmount() {
+            return this.paymentAmount - this.totalAmount;
+        }
+    },
+    methods: {
+        updateProductDetails() {
+            const product = this.products.find(p => p.id === this.selectedProductId);
+            if (product) {
+                this.selectedProductPrice = product.price;
+                this.selectedProductStock = product.stock;
+                this.quantity = 1;
+            }
+        },
+        addProduct() {
+            const product = this.products.find(p => p.id === this.selectedProductId);
+            if (product && this.quantity > 0 && this.quantity <= product.stock) {
+                const existingItem = this.orderItems.find(item => item.id === product.id);
+                if (existingItem) {
+                    existingItem.quantity += this.quantity;
+                    existingItem.total = existingItem.quantity * existingItem.price;
+                } else {
+                    this.orderItems.push({
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        quantity: this.quantity,
+                        total: product.price * this.quantity
+                    });
+                }
+                product.stock -= this.quantity;
+                this.updateProductDetails();
+            }
+        },
+        removeProduct(productId) {
+            const index = this.orderItems.findIndex(item => item.id === productId);
+            if (index !== -1) {
+                const product = this.products.find(p => p.id === productId);
+                if (product) {
+                    product.stock += this.orderItems[index].quantity;
+                }
+                this.orderItems.splice(index, 1);
+            }
+        },
+        completeOrder() {
+            if (this.paymentAmount >= this.totalAmount) {
+                this.orderNumber++;
+                this.customerName = 'Saaaaaa';
+                this.orderDate = '';
+                this.selectedProductId = this.products[0].id;
+                this.selectedProductPrice = this.products[0].price;
+                this.selectedProductStock = this.products[0].stock;
+                this.quantity = 1;
+                this.paymentAmount = 0;
+                this.orderItems = [];
+                alert('Order completed successfully!');
+            } else {
+                alert('Insufficient payment amount!');
+            }
+        }
+    },
+    mounted() {
+        this.updateProductDetails();
+    }
+});
+</script>
+
+</body>
+</html>
